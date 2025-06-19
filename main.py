@@ -57,12 +57,12 @@ def check_args(parsed_args: argparse.Namespace) -> None:
 
             if len(splited_aggregate) != 2:
                 print(f'{general_error_phrase} '
-                     f'Формат "поле=тип_аггрегации ({AGGREGATION_TYPE})"')
+                      f'Формат "поле=тип_аггрегации ({AGGREGATION_TYPE})"')
                 exit()
 
             if not splited_aggregate[1] in AGGREGATION_TYPE:  # проверка типа аггрегации в числе доступных
                 print(f'{general_error_phrase} '
-                     f'Тип аггрегации {splited_aggregate[1]} отсутствует.')
+                      f'Тип аггрегации {splited_aggregate[1]} отсутствует.')
                 exit()
 
 
@@ -103,13 +103,13 @@ def filter_products(
     # Проверка наличия поля выборки
     if not products[0].get(filtered_field):
         print(f'Неверно указаны условия выборки `{filtered_field}{sign}{filtered_value}`. '
-             f'Поле {filtered_field} отсутствует.')
+              f'Поле {filtered_field} отсутствует.')
         exit()
 
     # Проверка валидности знака и типа данных в поле выборки
     if sign != '==' and not products[0].get(filtered_field).replace('.', '', 1).isdigit():
         print(f'Неверно указаны условия выборки `{filtered_field}{sign}{filtered_value}`. '
-             f'Поле {filtered_field} не является числовым.')
+              f'Поле {filtered_field} не является числовым.')
         exit()
 
     for product in products:
@@ -133,14 +133,14 @@ def aggregate_products(
 
     if not filtered_products[0].get(aggregate_field):
         print(f'{general_error_phrase} '
-             f'Поле {aggregate_field} отсутствует.')
+              f'Поле {aggregate_field} отсутствует.')
         exit()
 
     try:
         float(filtered_products[0].get(aggregate_field))
     except ValueError:
         print(f'{general_error_phrase} '
-             f'Поле {aggregate_field} не является числовым.')
+              f'Поле {aggregate_field} не является числовым.')
         exit()
 
     value = 0
