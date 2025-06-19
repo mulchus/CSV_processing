@@ -17,7 +17,7 @@ pip install -r requirements.txt
 ```sh
 python main.py --file D:\Python\CSV_processing\products.csv --where "rating>4.0" --aggregate "rating>min"
 ```
-```commandline
+```sh
 options:
   -h, --help            show this help message and exit
   --file [FILE]         директория с файлом csv (по умолчанию - ПУТЬ_К_ПАПКЕ_СО_СКРИПТОМ/products.csv)
@@ -29,8 +29,10 @@ options:
 
 ### Результат работы на примере прилагаемого файла [products.csv](products.csv)
 
-```commandline
-(.venv) PS D:\Python\CSV_processing> python main.py --where "price>500"
+```sh
+python main.py --where "price>500"
+```
+```sh
 +------------------+---------+---------+----------+
 | name             | brand   |   price |   rating |
 +==================+=========+=========+==========+
@@ -42,8 +44,10 @@ options:
 +------------------+---------+---------+----------+
 ```
 
-```commandline
-(.venv) PS D:\Python\CSV_processing> python main.py --where "price>500" --aggregate "price=avg"
+```sh
+python main.py --where "price>500" --aggregate "price=avg"
+```
+```sh
 +-------+
 |   avg |
 +=======+
@@ -51,8 +55,10 @@ options:
 +-------+
 ```
 
-```commandline
-(.venv) PS D:\Python\CSV_processing> python main.py --where "price<500"
+```sh
+python main.py --where "price<500"
+```
+```sh
 +---------------+---------+---------+----------+
 | name          | brand   |   price |   rating |
 +===============+=========+=========+==========+
@@ -62,11 +68,12 @@ options:
 | iphone se     | apple   |     429 |      4.1 |
 | redmi 10c     | xiaomi  |     149 |      4.1 |
 +---------------+---------+---------+----------+
-
 ```
 
-```commandline
-(.venv) PS D:\Python\CSV_processing> python main.py --where "price<500" --aggregate "rating=min"
+```sh
+python main.py --where "price<500" --aggregate "rating=min"
+```
+```sh
 +-------+
 |   min |
 +=======+
@@ -74,15 +81,18 @@ options:
 +-------+
 ```
 
-```commandline
-(.venv) PS D:\Python\CSV_processing> python main.py --where "name>600"
+```sh
+python main.py --where "name>600"
+```
+```sh
 Неверно указаны условия выборки `name>600`. Поле name не является числовым.
 ```
 
-```commandline
-(.venv) PS D:\Python\CSV_processing> python main.py --where "price>500" --aggregate "price>avg"
+```sh
+python main.py --where "price>500" --aggregate "price>avg"
+```
+```sh
 Неверно указаны условия аггрегации в `price>avg`. Формат "поле=тип_аггрегации (['avg', 'min', 'max'])"
-
 ```
 
 ### Запуск тестов
