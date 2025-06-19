@@ -1,7 +1,8 @@
 import argparse
-import os
 import csv
+import os
 import re
+
 from tabulate import tabulate
 
 
@@ -36,8 +37,7 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def check_args(parsed_args):
-    print(parsed_args)
+def check_args(parsed_args: argparse.Namespace) -> None:
     if not os.path.isfile(parsed_args.file):
         print(f'Файл {parsed_args.file} отсутствует. Продолжение невозможно. Проверьте путь к файлу и его имя.')
         exit()
@@ -65,10 +65,8 @@ def check_args(parsed_args):
                      f'Тип аггрегации {splited_aggregate[1]} отсутствует.')
                 exit()
 
-    return parsed_args
 
-
-def load_products(file_path):
+def load_products(file_path: str) -> list[dict[str, str]]:
     products = []
     with open(file_path, newline='') as csvfile:
         csvreader = csv.DictReader(csvfile)
@@ -77,7 +75,7 @@ def load_products(file_path):
     return products
 
 
-def determine_type(value):
+def determine_type(value: str) -> str:
     """Определяет тип значения: int, float или string."""
     try:
         int(value)
@@ -94,7 +92,12 @@ def determine_type(value):
     return 'string'
 
 
-def filter_products(products, filtered_field, filtered_value, sign):
+def filter_products(
+        products: list[dict[str, str]],
+        filtered_field: str,
+        filtered_value: str,
+        sign: str,
+) -> list[dict[str, str]]:
     filtered_products = []
 
     # Проверка наличия поля выборки
@@ -106,7 +109,7 @@ def filter_products(products, filtered_field, filtered_value, sign):
     # Проверка валидности знака и типа данных в поле выборки
     if sign != '==' and not products[0].get(filtered_field).replace('.', '', 1).isdigit():
         print(f'Неверно указаны условия выборки `{filtered_field}{sign}{filtered_value}`. '
-             f'Поле {filtered_field} не является числом.')
+             f'Поле {filtered_field} не является числовым.')
         exit()
 
     for product in products:
@@ -121,7 +124,11 @@ def filter_products(products, filtered_field, filtered_value, sign):
     return filtered_products
 
 
-def aggregate_products(filtered_products, aggregate_field, aggregate_type):
+def aggregate_products(
+        filtered_products: list[dict[str, str]],
+        aggregate_field: str,
+        aggregate_type: str,
+) -> float:
     general_error_phrase = f'Неверно указаны условия аггрегации в `{aggregate_field}={aggregate_type}`.'
 
     if not filtered_products[0].get(aggregate_field):
@@ -133,7 +140,7 @@ def aggregate_products(filtered_products, aggregate_field, aggregate_type):
         float(filtered_products[0].get(aggregate_field))
     except ValueError:
         print(f'{general_error_phrase} '
-             f'Поле {aggregate_field} не является числом.')
+             f'Поле {aggregate_field} не является числовым.')
         exit()
 
     value = 0
@@ -159,7 +166,7 @@ def aggregate_products(filtered_products, aggregate_field, aggregate_type):
     return round(value, 2)
 
 
-def main():
+def main() -> None:
 
     parsed_args = parse_arguments()
     file_path = parsed_args.file

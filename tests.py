@@ -164,7 +164,7 @@ def test_aggregate(temp_csv, aggregate_field, aggregate_type, agregate_result):
     "aggregate_field, aggregate_type, error_message",
     [
         ('fake_price', 'max', "Поле fake_price отсутствует"),
-        ('name', 'min', "Поле name не является числом."),
+        ('name', 'min', "Поле name не является числовым."),
     ]
 )
 def test_aggregate_bad_fields(temp_csv, aggregate_field, aggregate_type, error_message):
