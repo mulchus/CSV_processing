@@ -5,10 +5,10 @@ import re
 from tabulate import tabulate
 
 
-AGGREGATION_CONDITIONS = ['avg', 'min', 'max']
+AGGREGATION_TYPE = ['avg', 'min', 'max']
 
 
-def parse_argements() -> argparse.Namespace:
+def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
        description='Скрипт анализа файла данных csv'
     )
@@ -37,8 +37,10 @@ def parse_argements() -> argparse.Namespace:
 
 
 def check_args(parsed_args):
+    print(parsed_args)
     if not os.path.isfile(parsed_args.file):
-        exit(f'Файл {parsed_args.file} не найден. Продолжение невозможно. Проверьте путь к файлу и его имя.')
+        print(f'Файл {parsed_args.file} отсутствует. Продолжение невозможно. Проверьте путь к файлу и его имя.')
+        exit()
 
     # Проверка условий выборки, аггрегации и прочих на корректность формата
     for arg_key, parsed_arg in vars(parsed_args).items():
@@ -46,19 +48,22 @@ def check_args(parsed_args):
             continue
 
         if parsed_arg and not re.search(r'[=><]', parsed_arg):
-            exit(f'Неверно указаны условия выборки в `{parsed_arg}`.')
+            print(f'Неверно указаны условия выборки в `{parsed_arg}`.')
+            exit()
 
         if arg_key == 'aggregate' and parsed_arg:  # возможные проверки формата аггрегации на данном этапе
             splited_aggregate = parsed_args.aggregate.split('=')
             general_error_phrase = f'Неверно указаны условия аггрегации в `{parsed_args.aggregate}`.'
 
             if len(splited_aggregate) != 2:
-                exit(f'{general_error_phrase} '
-                     f'Формат "поле=тип_аггрегации ({AGGREGATION_CONDITIONS})"')
+                print(f'{general_error_phrase} '
+                     f'Формат "поле=тип_аггрегации ({AGGREGATION_TYPE})"')
+                exit()
 
-            if not splited_aggregate[1] in AGGREGATION_CONDITIONS:
-                exit(f'{general_error_phrase} '
-                     f'Условие аггрегации {splited_aggregate[1]} не найдено.')
+            if not splited_aggregate[1] in AGGREGATION_TYPE:  # проверка типа аггрегации в числе доступных
+                print(f'{general_error_phrase} '
+                     f'Тип аггрегации {splited_aggregate[1]} отсутствует.')
+                exit()
 
     return parsed_args
 
@@ -72,29 +77,46 @@ def load_products(file_path):
     return products
 
 
-def filter_products(products, parsed_args):
+def determine_type(value):
+    """Определяет тип значения: int, float или string."""
+    try:
+        int(value)
+        return 'int'
+    except ValueError:
+        pass
+
+    try:
+        float(value)
+        return 'float'
+    except ValueError:
+        pass
+
+    return 'string'
+
+
+def filter_products(products, filtered_field, filtered_value, sign):
     filtered_products = []
-    if parsed_args.where:
-        sign = re.search(r'[=><]', parsed_args.where).group()
-        splited_where = parsed_args.where.split(sign)
 
-        if sign == '=':
-            sign = '=='
-        splited_where.append(sign)
+    # Проверка наличия поля выборки
+    if not products[0].get(filtered_field):
+        print(f'Неверно указаны условия выборки `{filtered_field}{sign}{filtered_value}`. '
+             f'Поле {filtered_field} отсутствует.')
+        exit()
 
-        # Проверка наличия поля выборки
-        if not products[0].get(splited_where[0]):
-            exit(f'Неверно указаны условия выборки в `{parsed_args.where}`. '
-                 f'Поле {splited_where[0]} не найдено.')
+    # Проверка валидности знака и типа данных в поле выборки
+    if sign != '==' and not products[0].get(filtered_field).replace('.', '', 1).isdigit():
+        print(f'Неверно указаны условия выборки `{filtered_field}{sign}{filtered_value}`. '
+             f'Поле {filtered_field} не является числом.')
+        exit()
 
-        # Проверка валидности знака и типа данных в поле выборки
-        if sign != '==' and not products[0].get(splited_where[0]).replace('.', '', 1).isdigit():
-            exit(f'Неверно указаны условия выборки в `{parsed_args.where}`. '
-                 f'Поле {splited_where[0]} не является числом.')
+    for product in products:
+        if (determine_type(filtered_value) in ('float', 'int')
+                and eval(f'float(product.get("{filtered_field}")){sign}float({filtered_value})')):
+            filtered_products.append(product)
 
-        for product in products:
-            if eval(f'float(product.get("{splited_where[0]}")){splited_where[2]}float({splited_where[1]})'):
-                filtered_products.append(product)
+        if (determine_type(filtered_value) == 'string'
+                and eval(f'product.get("{filtered_field}"){sign}"{filtered_value}"')):
+            filtered_products.append(product)
 
     return filtered_products
 
@@ -103,14 +125,16 @@ def aggregate_products(filtered_products, aggregate_field, aggregate_type):
     general_error_phrase = f'Неверно указаны условия аггрегации в `{aggregate_field}={aggregate_type}`.'
 
     if not filtered_products[0].get(aggregate_field):
-        exit(f'{general_error_phrase} '
-             f'Поле {aggregate_field} не найдено.')
+        print(f'{general_error_phrase} '
+             f'Поле {aggregate_field} отсутствует.')
+        exit()
 
     try:
         float(filtered_products[0].get(aggregate_field))
     except ValueError:
-        exit(f'{general_error_phrase} '
+        print(f'{general_error_phrase} '
              f'Поле {aggregate_field} не является числом.')
+        exit()
 
     value = 0
 
@@ -132,27 +156,35 @@ def aggregate_products(filtered_products, aggregate_field, aggregate_type):
             pre_value += float(product.get(aggregate_field))
         value = pre_value / len(filtered_products)
 
-    return value
+    return round(value, 2)
 
 
 def main():
 
-    parsed_args = parse_argements()
+    parsed_args = parse_arguments()
     file_path = parsed_args.file
     check_args(parsed_args)
     products = load_products(file_path)
 
     if parsed_args.where:
-        filtered_products = filter_products(products, parsed_args)
+        sign = re.search(r'[=><]', parsed_args.where).group()
+        filtered_field, filtered_value = parsed_args.where.split(sign)
+
+        if sign == '=':
+            sign = '=='
+
+        filtered_products = filter_products(products, filtered_field, filtered_value, sign)
         if not filtered_products:
-            exit('Ни один продукт не соответствует условиям выборки.')
+            print('Ни один продукт не соответствует условиям выборки.')
+            return
     else:
         filtered_products = products
 
     if not parsed_args.aggregate:  # если условия аггрегации не указаны - выводим таблицу и завершаем
         header = list(filtered_products[0].keys())
         rows = [x.values() for x in filtered_products]
-        exit(tabulate(rows, header, tablefmt="outline"))
+        print(tabulate(rows, header, tablefmt="outline"))
+        return
 
     aggregate_field, aggregate_type = parsed_args.aggregate.split('=')
     value = aggregate_products(filtered_products, aggregate_field, aggregate_type)
