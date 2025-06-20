@@ -194,12 +194,12 @@ def sort_products(filtered_products: list[dict[str, str]], order_field: str, ord
               f'Поле {order_field} отсутствует.')
         exit()
 
-    filtered_products = sorted(
+    sorted_products = sorted(
         filtered_products,
         key=itemgetter(order_field),
         reverse=True if order_by == 'desc' else False,
     )
-    return filtered_products
+    return sorted_products
 
 
 def main() -> None:
