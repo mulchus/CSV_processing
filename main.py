@@ -214,28 +214,24 @@ def main() -> None:
         if sign == '=':
             sign = '=='
 
-        filtered_products = filter_products(products, filtered_field, filtered_value, sign)
-        if not filtered_products:
+        products = filter_products(products, filtered_field, filtered_value, sign)
+        if not products:
             print('Ни один продукт не соответствует условиям выборки.')
             return
-    else:
-        filtered_products = products
 
-    if not parsed_args.aggregate:  # если условия аггрегации не указаны - выводим таблицу и завершаем
-
-        if parsed_args.order_by:
-            order_field, order_by = parsed_args.order_by.split('=')
-            filtered_products = sort_products(filtered_products, order_field, order_by)
-
-        header = list(filtered_products[0].keys())
-        rows = [x.values() for x in filtered_products]
-        print(tabulate(rows, header, tablefmt="outline"))
+    if parsed_args.aggregate:
+        aggregate_field, aggregate_type = parsed_args.aggregate.split('=')
+        value = aggregate_products(products, aggregate_field, aggregate_type)
+        print(tabulate([[value]], [aggregate_type], tablefmt="outline"))
         return
 
-    aggregate_field, aggregate_type = parsed_args.aggregate.split('=')
-    value = aggregate_products(filtered_products, aggregate_field, aggregate_type)
+    if parsed_args.order_by:
+        order_field, order_by = parsed_args.order_by.split('=')
+        products = sort_products(products, order_field, order_by)
 
-    print(tabulate([[value]], [aggregate_type], tablefmt="outline"))
+    header = list(products[0].keys())
+    rows = [x.values() for x in products]
+    print(tabulate(rows, header, tablefmt="outline"))
 
 
 if __name__ == '__main__':
