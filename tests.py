@@ -1,11 +1,19 @@
 import argparse
 import csv
 from io import StringIO
+from operator import itemgetter
 from unittest.mock import patch
 
 import pytest
 
-from main import check_args, load_products, parse_arguments, filter_products, aggregate_products
+from main import check_args, load_products, parse_arguments, filter_products, aggregate_products, sort_products
+
+
+csv_rows = [
+    {'name': 'iphone 15 pro', 'brand': 'apple', 'price': '999', 'rating': '4.9'},
+    {'name': 'redmi note 12', 'brand': 'xiaomi', 'price': '199', 'rating': '4.6'},
+    {'name': 'poco x5 pro', 'brand': 'xiaomi', 'price': '299', 'rating': '4.4'},
+]
 
 
 @pytest.fixture
@@ -14,9 +22,7 @@ def temp_csv(tmpdir):
     with open(csv_file, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.DictWriter(file, fieldnames=['name', 'brand', 'price', 'rating'])
         writer.writeheader()
-        writer.writerow({'name': 'iphone 15 pro', 'brand': 'apple', 'price': 999, 'rating': 4.9})
-        writer.writerow({'name': 'redmi note 12', 'brand': 'xiaomi', 'price': 199, 'rating': 4.6})
-        writer.writerow({'name': 'poco x5 pro', 'brand': 'xiaomi', 'price': 299, 'rating': 4.4})
+        writer.writerows(csv_rows)
     return str(csv_file)
 
 
@@ -29,7 +35,9 @@ def test_load_products(temp_csv):
 
 
 def test_argparser_good_args():
-    test_args = ['main.py', '--file', '123.csv', '--where', 'name=poco', '--aggregate', 'price=avg']
+    test_args = [
+        'main.py', '--file', '123.csv', '--where', 'name=poco', '--aggregate', 'price=avg', '--order', 'price=asc'
+    ]
     with patch('sys.argv', test_args):
         parse_arguments()
 
@@ -98,6 +106,10 @@ def test_check_args_good_values(temp_csv, parsed_args):
          "Неверно указаны условия аггрегации в `rating=fake_min`"),
         (argparse.Namespace(file="temporary.csv", whre='brand=xiaomi', aggregate='rating>min'),
          "Неверно указаны условия аггрегации в `rating>min`"),
+        (argparse.Namespace(file="temporary.csv", whre='brand=xiaomi', order_by='rating=fake_asc'),
+         "Неверно указаны условия сортировки в `rating=fake_asc`"),
+        (argparse.Namespace(file="temporary.csv", whre='brand=xiaomi', order_by='rating>desc'),
+         "Неверно указаны условия сортировки в `rating>desc`"),
     ]
 )
 def test_check_args_bad_values(temp_csv, parsed_args, error_message):
@@ -144,6 +156,25 @@ def test_filter(temp_csv, filtered_field, filtered_value, sign, filter_result):
 
 
 @pytest.mark.parametrize(
+    "field_to_order, order_by, order_by_result",
+    [
+        ('name', 'asc', sorted(csv_rows.copy(), key=itemgetter('name'))),
+        ('name', 'desc', sorted(csv_rows.copy(), key=itemgetter('name'), reverse=True)),
+        ('brand', 'asc', sorted(csv_rows.copy(), key=itemgetter('brand'))),
+        ('brand', 'desc', sorted(csv_rows.copy(), key=itemgetter('brand'), reverse=True)),
+        ('price', 'asc', sorted(csv_rows.copy(), key=itemgetter('price'))),
+        ('price', 'desc', sorted(csv_rows.copy(), key=itemgetter('price'), reverse=True)),
+        ('rating', 'asc', sorted(csv_rows.copy(), key=itemgetter('rating'))),
+        ('rating', 'desc', sorted(csv_rows.copy(), key=itemgetter('rating'), reverse=True)),
+    ]
+)
+def test_order_by(temp_csv, field_to_order, order_by, order_by_result):
+    products = load_products(temp_csv)
+    sorted_products = sort_products(products, field_to_order, order_by)
+    assert sorted_products == order_by_result
+
+
+@pytest.mark.parametrize(
     "aggregate_field, aggregate_type, agregate_result",
     [
         ('price', 'max', 999.0),
@@ -186,4 +217,18 @@ def test_filter_bad_fields(temp_csv, filtered_field, filtered_value, sign, error
         with patch('sys.stdout', new=StringIO()) as fake_out:
             products = load_products(temp_csv)
             filter_products(products, filtered_field, filtered_value, sign)
+    assert error_message in fake_out.getvalue()
+
+
+@pytest.mark.parametrize(
+    "field_to_order, order_by, error_message",
+    [
+        ('fake_name', 'desc', 'Поле fake_name отсутствует'),
+    ]
+)
+def test_order_by_bad_fields(temp_csv, field_to_order, order_by, error_message):
+    with pytest.raises(SystemExit):
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            products = load_products(temp_csv)
+            sort_products(products, field_to_order, order_by)
     assert error_message in fake_out.getvalue()

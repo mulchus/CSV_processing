@@ -24,7 +24,8 @@ options:
   --where [WHERE]       Условия выборки: >, < или =, например "price>1000"
   --aggregate [AGGREGATE]
                         Условия аггрегации: с расчетом среднего (avg), минимального (min) и максимального (max) значения, например "price=avg" или "rating=max"
-
+  --order_by [ORDER_BY]
+                        Условия сортировки: asc (по возрастанию) или desc (по убыванию), например "price=asc" или "rating=desc"
 ```
 
 ### Результат работы на примере прилагаемого файла [products.csv](products.csv)
@@ -41,6 +42,21 @@ python main.py --where "price>500"
 | iphone 14        | apple   |     799 |      4.7 |
 | galaxy z flip 5  | samsung |     999 |      4.6 |
 | iphone 13 mini   | apple   |     599 |      4.5 |
++------------------+---------+---------+----------+
+```
+
+```sh
+python main.py --where "price>500" --order_by "name=desc"
+```
+```sh
++------------------+---------+---------+----------+
+| name             | brand   |   price |   rating |
++==================+=========+=========+==========+
+| iphone 15 pro    | apple   |     999 |      4.9 |
+| iphone 14        | apple   |     799 |      4.7 |
+| iphone 13 mini   | apple   |     599 |      4.5 |
+| galaxy z flip 5  | samsung |     999 |      4.6 |
+| galaxy s23 ultra | samsung |    1199 |      4.8 |
 +------------------+---------+---------+----------+
 ```
 

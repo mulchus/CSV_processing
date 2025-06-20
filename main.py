@@ -3,6 +3,7 @@ import csv
 import os
 import re
 
+from operator import itemgetter
 from tabulate import tabulate
 
 
@@ -34,6 +35,13 @@ def parse_arguments() -> argparse.Namespace:
              'например "price=avg" или "rating=max"'
     )
 
+    parser.add_argument(
+        '--order_by',
+        nargs='?',
+        help='Условия сортировки: asc (по возрастанию) или desc (по убыванию), '
+             'например "price=asc" или "rating=desc"'
+    )
+
     return parser.parse_args()
 
 
@@ -57,12 +65,26 @@ def check_args(parsed_args: argparse.Namespace) -> None:
 
             if len(splited_aggregate) != 2:
                 print(f'{general_error_phrase} '
-                      f'Формат "поле=тип_аггрегации ({AGGREGATION_TYPE})"')
+                      f'Формат "поле=тип_аггрегации {AGGREGATION_TYPE}"')
                 exit()
 
             if not splited_aggregate[1] in AGGREGATION_TYPE:  # проверка типа аггрегации в числе доступных
                 print(f'{general_error_phrase} '
                       f'Тип аггрегации {splited_aggregate[1]} отсутствует.')
+                exit()
+
+        if arg_key == 'order_by' and parsed_arg:  # возможные проверки формата сортировки на данном этапе
+            splited_order_by = parsed_args.order_by.split('=')
+            general_error_phrase = f'Неверно указаны условия сортировки в `{parsed_args.order_by}`.'
+
+            if len(splited_order_by) != 2:
+                print(f'{general_error_phrase} '
+                      f'Формат "поле=тип_сортировки [asc или desc]')
+                exit()
+
+            if not splited_order_by[1] in ['asc', 'desc']:  # проверка типа сортировки в числе доступных
+                print(f'{general_error_phrase} '
+                      f'Тип сортировки {splited_order_by[1]} отсутствует.')
                 exit()
 
 
@@ -166,6 +188,20 @@ def aggregate_products(
     return round(value, 2)
 
 
+def sort_products(filtered_products: list[dict[str, str]], order_field: str, order_by: str) -> list[dict[str, str]]:
+    if not filtered_products[0].get(order_field):
+        print(f'Неверно указаны условия выборки `{order_field}={order_by}`. '
+              f'Поле {order_field} отсутствует.')
+        exit()
+
+    filtered_products = sorted(
+        filtered_products,
+        key=itemgetter(order_field),
+        reverse=True if order_by == 'desc' else False,
+    )
+    return filtered_products
+
+
 def main() -> None:
 
     parsed_args = parse_arguments()
@@ -188,6 +224,11 @@ def main() -> None:
         filtered_products = products
 
     if not parsed_args.aggregate:  # если условия аггрегации не указаны - выводим таблицу и завершаем
+
+        if parsed_args.order_by:
+            order_field, order_by = parsed_args.order_by.split('=')
+            filtered_products = sort_products(filtered_products, order_field, order_by)
+
         header = list(filtered_products[0].keys())
         rows = [x.values() for x in filtered_products]
         print(tabulate(rows, header, tablefmt="outline"))
