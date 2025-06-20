@@ -93,12 +93,17 @@ def load_products(file_path: str) -> list[dict[str, str]]:
     with open(file_path, newline='') as csvfile:
         csvreader = csv.DictReader(csvfile)
         for row in csvreader:
+            # преобразуем числа в соответствующие типы, поскольку при загрузке из CSV они всегда `str`
+            for key, value in row.items():
+                value_type = determine_type(value)
+                if not value_type == 'str':
+                    row[key] = eval(f'{value_type}(value)')
             products.append(row)
     return products
 
 
 def determine_type(value: str) -> str:
-    """Определяет тип значения: int, float или string."""
+    """Определяет тип значения: int, float или str."""
     try:
         int(value)
         return 'int'
@@ -111,7 +116,7 @@ def determine_type(value: str) -> str:
     except ValueError:
         pass
 
-    return 'string'
+    return 'str'
 
 
 def filter_products(
@@ -129,17 +134,18 @@ def filter_products(
         exit()
 
     # Проверка валидности знака и типа данных в поле выборки
-    if sign != '==' and not products[0].get(filtered_field).replace('.', '', 1).isdigit():
+    if sign != '==' and not determine_type(products[0].get(filtered_field)) in ('float', 'int'):
         print(f'Неверно указаны условия выборки `{filtered_field}{sign}{filtered_value}`. '
               f'Поле {filtered_field} не является числовым.')
         exit()
 
     for product in products:
+
         if (determine_type(filtered_value) in ('float', 'int')
                 and eval(f'float(product.get("{filtered_field}")){sign}float({filtered_value})')):
             filtered_products.append(product)
 
-        if (determine_type(filtered_value) == 'string'
+        if (determine_type(filtered_value) == 'str'
                 and eval(f'product.get("{filtered_field}"){sign}"{filtered_value}"')):
             filtered_products.append(product)
 
@@ -168,22 +174,14 @@ def aggregate_products(
     value = 0
 
     if aggregate_type == 'min':
-        value = float(filtered_products[0].get(aggregate_field))
-        for product in filtered_products:
-            if float(product[aggregate_field]) < value:
-                value = float(product.get(aggregate_field))
+        value = min(filtered_products, key=lambda x: x[aggregate_field])[aggregate_field]
 
     elif aggregate_type == 'max':
-        value = float(filtered_products[0].get(aggregate_field))
-        for product in filtered_products:
-            if float(product[aggregate_field]) > value:
-                value = float(product.get(aggregate_field))
+        value = max(filtered_products, key=lambda x: x[aggregate_field])[aggregate_field]
 
     elif aggregate_type == 'avg':
-        pre_value = 0
-        for product in filtered_products:
-            pre_value += float(product.get(aggregate_field))
-        value = pre_value / len(filtered_products)
+        aggregate_fields = [product.get(aggregate_field) for product in filtered_products]
+        value = sum(aggregate_fields) / len(aggregate_fields) if aggregate_fields else 0
 
     return round(value, 2)
 
