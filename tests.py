@@ -147,6 +147,7 @@ def test_check_args_bad_file_path(temp_csv, parsed_args, error_message):
                                {'name': 'poco x5 pro', 'brand': 'xiaomi', 'price': 299, 'rating': 4.4}]),
         ('rating', '4.7', '<', [{'name': 'redmi note 12', 'brand': 'xiaomi', 'price': 199, 'rating': 4.6},
                                 {'name': 'poco x5 pro', 'brand': 'xiaomi', 'price': 299, 'rating': 4.4}]),
+        ('price', '0', '==', []),
     ]
 )
 def test_filter(temp_csv, filtered_field, filtered_value, sign, filter_result):

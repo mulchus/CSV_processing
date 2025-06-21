@@ -140,15 +140,10 @@ def filter_products(
         exit()
 
     for product in products:
-
-        if (determine_type(filtered_value) in ('float', 'int')
-                and eval(f'float(product.get("{filtered_field}")){sign}float({filtered_value})')):
+        if eval(f'product.get("{filtered_field}"){sign}{filtered_value}') \
+                if determine_type(filtered_value) in ('float', 'int') \
+                else eval(f'product.get("{filtered_field}"){sign}"{filtered_value}"'):  # требуется подстановка кавычек
             filtered_products.append(product)
-
-        if (determine_type(filtered_value) == 'str'
-                and eval(f'product.get("{filtered_field}"){sign}"{filtered_value}"')):
-            filtered_products.append(product)
-
     return filtered_products
 
 
